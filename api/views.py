@@ -1,103 +1,47 @@
-from rest_framework.views import APIView
-from rest_framework.request import Request
-from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.generics import  ListCreateAPIView, RetrieveUpdateDestroyAPIView
 
 from .models import Genre, Book
-from .serializers import  GenreSerializer, BookSerializer
+from .serializers import GenreSerializer, BookSerializer
+
+class GenreListCreateAPIView(ListCreateAPIView):
+
+    def get_queryset(self):
+        return Genre.objects.all()
+
+    def get_serializer_class(self):
+        return GenreSerializer
 
 
+class GenreRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+    lookup_field = "pk"
+    lookup_url_kwarg = "genre_id"
 
-class GenreListAPIView(APIView):
-    def get(self, request: Request):
-        genres = Genre.objects.all()
-        serializer = GenreSerializer(genres, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        return Genre.objects.all()
 
-    def post(self, request: Request):
-        serializer = GenreSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_serializer_class(self):
+        return GenreSerializer
 
 
-class GenreDetailAPIView(APIView):
-    def get(self, request: Request, pk: int):
-        genre = Genre.objects.filter(pk=pk).first()
-        if genre is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        return Response(GenreSerializer(genre).data)
+class BookListCreateAPIView(ListCreateAPIView):
 
-    def put(self, request: Request, pk: int):
-        genre = Genre.objects.filter(pk=pk).first()
-        if genre is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        serializer = GenreSerializer(genre, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def patch(self, request: Request, pk: int):
-        genre = Genre.objects.filter(pk=pk).first()
-        if genre is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        serializer = GenreSerializer(genre, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def delete(self, request: Request, pk: int):
-        genre = Genre.objects.filter(pk=pk).first()
-        if genre is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        genre.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class BookListAPIView(APIView):
-    def get(self, request: Request, genre_id: int = None):
+    def get_queryset(self):
+        genre_id = self.kwargs.get("genre_id")
+        books = Book.objects.select_related("genre")
         if genre_id:
-            books = Book.objects.filter(genre_id=genre_id)
-        else:
-            books = Book.objects.all()
-        serializer = BookSerializer(books, many=True)
-        return Response(serializer.data)
+            books = books.filter(genre_id=genre_id)
+        return books
 
-    def post(self, request: Request):
-        serializer = BookSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_serializer_class(self):
+        return BookSerializer
 
 
-class BookDetailAPIView(APIView):
-    def get(self, request: Request, pk: int):
-        book = Book.objects.filter(pk=pk).first()
-        if book is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        return Response(BookSerializer(book).data)
+class BookRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+    lookup_field = "pk"
+    lookup_url_kwarg = "book_id"
 
-    def put(self, request: Request, pk: int):
-        book = Book.objects.filter(pk=pk).first()
-        if book is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        serializer = BookSerializer(book, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+    def get_queryset(self):
+        return Book.objects.select_related("genre")
 
-    def patch(self, request: Request, pk: int):
-        book = Book.objects.filter(pk=pk).first()
-        if book is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        serializer = BookSerializer(book, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    def delete(self, request: Request, pk: int):
-        book = Book.objects.filter(pk=pk).first()
-        if book is None:
-            return Response( status=status.HTTP_404_NOT_FOUND)
-        book.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_serializer_class(self):
+        return BookSerializer
